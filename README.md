@@ -20,6 +20,8 @@ DD
 - NumFeats: 1
 - NumClasses: 2
 
+NOTE: Since there is no data attributes in DD dataset, we use node_id (in one-hot vector whose length is the max number of nodes across all graphs) as the node feature. The one-hot vector size should be 89. Also note that the node_id in this dataset is not unique (e.g. a graph may has two nodes with the same id).
+
 PROTEINS
 - NumGraphs: 1113
 - AvgNodesPerGraph: 39.06

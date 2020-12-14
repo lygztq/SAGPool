@@ -3,3 +3,11 @@
 
 # test
 test.py
+test_utils.py
+dev_test.py
+
+# python
+__pycache__/
+
+# data
+data/
