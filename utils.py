@@ -1,5 +1,4 @@
 import torch
-import dgl
 import logging
 from scipy.stats import t
 import math

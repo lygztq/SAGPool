@@ -1,6 +1,4 @@
-from typing import Union
 import torch
-from torch._C import Value
 import torch.nn
 import torch.nn.functional as F
 import dgl
