@@ -21,7 +21,7 @@ class SAGNetworkHierarchical(torch.nn.Module):
         for i in range(num_convs):
             _i_dim = in_dim if i == 0 else hid_dim
             _o_dim = hid_dim
-            convpools.append(ConvPoolBlock(_i_dim, _o_dim, pool_ratio=pool_ratio, readout=True))
+            convpools.append(ConvPoolBlock(_i_dim, _o_dim, pool_ratio=pool_ratio))
         self.convpools = torch.nn.ModuleList(convpools)
 
         self.lin1 = torch.nn.Linear(hid_dim * 2, hid_dim)

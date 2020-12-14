@@ -2,6 +2,7 @@ import torch
 import torch.nn
 import argparse
 import os
+import dgl
 import torch.nn.functional as F
 from torch.utils.data import random_split
 from dgl.data import LegacyTUDataset
@@ -27,13 +28,14 @@ def parse_args():
                         help="hidden size")
     parser.add_argument("--dropout", type=float, default=0.5,
                         help="dropout ratio")
-    parser.add_argument("--epochs", type=int, default=1e5,
+    parser.add_argument("--epochs", type=int, default=100000,
                         help="max number of training epochs")
     parser.add_argument("--patience", type=int, default=50,
                         help="patience for early stopping")
     parser.add_argument("--device", type=int, default=-1,
                         help="device id, -1 for cpu")
-    parser.add_argument("--architecture", type=str, choices=["hierarchical", "global"],
+    parser.add_argument("--architecture", type=str, default="hierarchical",
+                        choices=["hierarchical", "global"],
                         help="model architecture")
     parser.add_argument("--dataset_path", type=str, default="./dataset",
                         help="path to dataset")
@@ -52,13 +54,14 @@ def parse_args():
     return args
 
 
-def train(model:torch.nn.Module, optimizer, trainloader):
+def train(model:torch.nn.Module, optimizer, trainloader, device):
     model.train()
     total_loss = 0.
     for batch in trainloader:
         optimizer.zero_grad()
         batch_graphs, batch_labels = batch
-        batch_graphs = batch_graphs.to(model.device)
+        batch_graphs = batch_graphs.to(device)
+        batch_labels = batch_labels.to(device)
         out = model(batch_graphs)
         loss = F.nll_loss(out, batch_labels)
         loss.backward()
@@ -70,14 +73,15 @@ def train(model:torch.nn.Module, optimizer, trainloader):
 
 
 @torch.no_grad()
-def test(model:torch.nn.Module, loader):
+def test(model:torch.nn.Module, loader, device):
     model.eval()
     correct = 0.
     loss = 0.
     num_graphs = len(loader.dataset)
     for batch in loader:
         batch_graphs, batch_labels = batch
-        batch_graphs = batch_graphs.to(model.device)
+        batch_graphs = batch_graphs.to(device)
+        batch_labels = batch_labels.to(device)
         out = model(batch_graphs)
         pred = out.argmax(dim=1)
         loss += F.nll_loss(out, batch_labels, reduction="sum").item()
@@ -88,16 +92,19 @@ def test(model:torch.nn.Module, loader):
 def main(args):
     # Step 1: Prepare graph data and retrieve train/validation/test index ============================= #
     dataset = LegacyTUDataset(args.dataset, raw_dir=args.dataset_path)
+    for i in range(len(dataset)):
+        dataset.graph_lists[i] = dgl.add_self_loop(dataset.graph_lists[i])
     num_training = int(len(dataset) * 0.8)
     num_val = int(len(dataset) * 0.1)
     num_test = len(dataset) - num_val - num_training
     train_set, val_set, test_set = random_split(dataset, [num_training, num_val, num_test])
 
-    train_loader = GraphDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=12)
+    train_loader = GraphDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=0)
     val_loader = GraphDataLoader(val_set, batch_size=args.batch_size)
     test_loader = GraphDataLoader(test_set, batch_size=args.batch_size)
 
     device = torch.device(args.device)
+    print(device)
     
     # Step 2: Create model =================================================================== #
     num_feature, num_classes, max_num_nodes = dataset.statistics()
@@ -114,9 +121,9 @@ def main(args):
     final_test_acc = 0.
     best_epoch = 0
     for e in range(args.epochs):
-        train_loss = train(model, optimizer, train_loader)
-        val_acc, val_loss = test(model, val_loader)
-        test_acc, _ = test(model, test_loader)
+        train_loss = train(model, optimizer, train_loader, device)
+        val_acc, val_loss = test(model, val_loader, device)
+        test_acc, _ = test(model, test_loader, device)
         if best_val_loss > val_loss:
             best_val_loss = val_loss
             final_test_acc = test_acc
@@ -129,8 +136,9 @@ def main(args):
         
         if (e + 1) % args.print_every == 0:
             log_format = "Epoch {}: loss={:.4f}, val_acc={:.4f}, final_test_acc={:.4f}"
-            print(log_format, e + 1, train_loss, val_acc, final_test_acc)
+            print(log_format.format(e + 1, train_loss, val_acc, final_test_acc))
     print("Best Epoch {}, final test acc {:.4f}".format(best_epoch, final_test_acc))
+    return final_test_acc
 
 
 if __name__ == "__main__":
