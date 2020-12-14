@@ -10,4 +10,4 @@ dev_test.py
 __pycache__/
 
 # data
-data/
+dataset/

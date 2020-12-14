@@ -1,4 +1,6 @@
+from typing import Union
 import torch
+from torch._C import Value
 import torch.nn
 import torch.nn.functional as F
 import dgl
@@ -86,3 +88,12 @@ class SAGNetworkGlobal(torch.nn.Module):
         feat = F.log_softmax(self.lin3(feat), dim=-1)
 
         return feat
+
+
+def get_sag_network(net_type:str="hierarchical"):
+    if net_type == "hierarchical":
+        return SAGNetworkHierarchical
+    elif net_type == "global":
+        return SAGNetworkGlobal
+    else:
+        raise ValueError("SAGNetwork type {} is not supported.".format(net_type))
