@@ -1,7 +1,9 @@
+from numpy.core.fromnumeric import sort
 import torch
 import torch.nn
 import argparse
 import os
+import json
 import dgl
 import torch.nn.functional as F
 from torch.utils.data import random_split
@@ -9,6 +11,7 @@ from dgl.data import LegacyTUDataset
 
 from dataloader import GraphDataLoader
 from network import get_sag_network
+from utils import get_stats
 
 
 def parse_args():
@@ -42,15 +45,25 @@ def parse_args():
     parser.add_argument("--conv_layers", type=int, default=3,
                         help="number of conv layers")
     parser.add_argument("--print_every", type=int, default=10,
-                        help="print trainlog every k epochs")
+                        help="print trainlog every k epochs, -1 for silent training")
+    parser.add_argument("--num_trials", type=int, default=1,
+                        help="number of trials")
+    parser.add_argument("--output_path", type=str, default="./output")
     
     args = parser.parse_args()
     args.device = "cpu" if args.device == -1 else "cuda:{}".format(args.device)
+    if args.print_every == -1:
+        args.print_every = args.epochs + 1
     if not torch.cuda.is_available():
         args.device = "cpu"
     if not os.path.exists(args.dataset_path):
         os.makedirs(args.dataset_path)
-    
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
+    name = "Data={}_Hidden={}_Arch={}_Pool={}_WeightDecay={}_Lr={}.log".format(
+        args.dataset, args.hid_dim, args.architecture, args.pool_ratio, args.weight_decay, args.lr)
+    args.output_path = os.path.join(args.output_path, name)
+
     return args
 
 
@@ -104,13 +117,14 @@ def main(args):
     test_loader = GraphDataLoader(test_set, batch_size=args.batch_size)
 
     device = torch.device(args.device)
-    print(device)
     
     # Step 2: Create model =================================================================== #
     num_feature, num_classes, max_num_nodes = dataset.statistics()
     model_op = get_sag_network(args.architecture)
     model = model_op(in_dim=num_feature, hid_dim=args.hid_dim, out_dim=num_classes,
                      num_convs=args.conv_layers, pool_ratio=args.pool_ratio, dropout=args.dropout).to(device)
+    args.num_feature = int(num_feature)
+    args.num_classes = int(num_classes)
 
     # Step 3: Create training components ===================================================== #
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -140,7 +154,22 @@ def main(args):
     print("Best Epoch {}, final test acc {:.4f}".format(best_epoch, final_test_acc))
     return final_test_acc
 
+def fake_main():
+    return 5 + torch.randn((1,)).item()
+
 
 if __name__ == "__main__":
     args = parse_args()
-    main(args)
+    res = []
+    for i in range(args.num_trials):
+        print("Trial {}/{}".format(i + 1, args.num_trials))
+        res.append(main(args))
+
+    mean, err_bd = get_stats(res, conf_interval=True)
+    print(mean, err_bd)
+
+    out_dict = {"hyper-parameters": vars(args),
+                "result": "{:.4f}(+-{:.4f})".format(mean, err_bd)}
+
+    with open(args.output_path, "w") as f:
+        json.dump(out_dict, f, sort_keys=True, indent=4)

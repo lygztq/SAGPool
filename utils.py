@@ -24,14 +24,12 @@ def get_stats(array, conf_interval=False, name=None, stdout=False, logout=False)
     std, mean = torch.std_mean(array)
     std = std.item()
     mean = mean.item()
+    center = mean
 
     if conf_interval:
         n = array.size(0)
         se = std / (math.sqrt(n) + eps)
         t_value = t.ppf(0.975, df=n-1)
-
-    center = mean
-    if conf_interval:
         err_bound = t_value * se
     else:
         err_bound = std
