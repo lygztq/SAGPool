@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for arch in hierarchical, global
+for arch in hierarchical global
 do
     for hidden in 16 32 64 128
     do
@@ -8,7 +8,7 @@ do
         do
             for lr in 1e-2 5e-2 1e-3 5e-3 1e-4 5e-4
             do
-                for weight_decay in 1e-2, 1e-3, 1e-4, 1e-5
+                for weight_decay in 1e-2 1e-3 1e-4 1e-5
                 do
                     for dataset in DD PROTEINS NCI1 NCI109 Mutagenicity
                     do
