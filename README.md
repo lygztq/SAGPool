@@ -55,17 +55,20 @@ How to run example files
 --------------------------------
 In the SAGPool-DGL folder, run
 
-```python
+```bash
 python main.py --dataset ${your_dataset_name_here}
 ```
 
 If want to use a GPU, run
 
-```python
+```bash
 python main.py --device ${your_device_id_here} --dataset ${your_dataset_name_here}
 ```
 
-If your want to perform a grid search, modify the file `run_all.sh` and run it with bash.
+If your want to perform a grid search, run
+```bash
+python grid_search.py --device ${your_device_id_here} --num_trials ${num_of_trials_here}
+```
 
 Performance
 -------------------------
