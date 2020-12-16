@@ -12,7 +12,8 @@ def run_experiments(args):
     res = []
     for i in range(args.num_trials):
         print("Trial {}/{}".format(i + 1, args.num_trials))
-        res.append(main(args))
+        acc, _ = main(args)
+        res.append(acc)
     
     mean, err_bd = get_stats(res, conf_interval=True)
     return mean, err_bd

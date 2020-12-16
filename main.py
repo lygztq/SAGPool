@@ -2,7 +2,7 @@ import argparse
 import json
 import logging
 import os
-
+from time import time
 import dgl
 import torch
 import torch.nn
@@ -146,8 +146,11 @@ def main(args):
     best_val_loss = float("inf")
     final_test_acc = 0.
     best_epoch = 0
+    train_times = []
     for e in range(args.epochs):
+        s_time = time()
         train_loss = train(model, optimizer, train_loader, device)
+        train_times.append(time() - s_time)
         val_acc, val_loss = test(model, val_loader, device)
         test_acc, _ = test(model, test_loader, device)
         if best_val_loss > val_loss:
@@ -164,21 +167,25 @@ def main(args):
             log_format = "Epoch {}: loss={:.4f}, val_acc={:.4f}, final_test_acc={:.4f}"
             print(log_format.format(e + 1, train_loss, val_acc, final_test_acc))
     print("Best Epoch {}, final test acc {:.4f}".format(best_epoch, final_test_acc))
-    return final_test_acc
+    return final_test_acc, sum(train_times) / len(train_times)
 
 
 if __name__ == "__main__":
     args = parse_args()
     res = []
+    train_times = []
     for i in range(args.num_trials):
         print("Trial {}/{}".format(i + 1, args.num_trials))
-        res.append(main(args))
+        acc, train_time = main(args)
+        res.append(acc)
+        train_times.append(train_time)
 
     mean, err_bd = get_stats(res, conf_interval=True)
     print("mean acc: {:.4f}, error bound: {:.4f}".format(mean, err_bd))
 
     out_dict = {"hyper-parameters": vars(args),
-                "result": "{:.4f}(+-{:.4f})".format(mean, err_bd)}
+                "result": "{:.4f}(+-{:.4f})".format(mean, err_bd),
+                "train_time": "{:.4f}".format(sum(train_times) / len(train_times))}
 
     with open(args.output_path, "w") as f:
         json.dump(out_dict, f, sort_keys=True, indent=4)
