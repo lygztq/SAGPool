@@ -6,7 +6,19 @@ from utils import topk, get_batch_id
 
 
 class SAGPool(torch.nn.Module):
-    def __init__(self, in_dim:int, ratio=0.8, conv_op=GraphConv, non_linearity=torch.tanh):
+    """The Self-Attention Pooling layer in paper 
+    `Self Attention Graph Pooling <https://arxiv.org/pdf/1904.08082.pdf>`
+
+    Args:
+        in_dim (int): The dimension of node feature.
+        ratio (float, optional): The pool ratio which determines the amount of nodes
+            remain after pooling. (default: :obj:`0.5`)
+        conv_op (torch.nn.Module, optional): The graph convolution layer in dgl used to
+        compute scale for each node. (default: :obj:`dgl.nn.GraphConv`)
+        non_linearity (Callable, optional): The non-linearity function, a pytorch function.
+            (default: :obj:`torch.tanh`)
+    """
+    def __init__(self, in_dim:int, ratio=0.5, conv_op=GraphConv, non_linearity=torch.tanh):
         super(SAGPool, self).__init__()
         self.in_dim = in_dim
         self.ratio = ratio
@@ -30,6 +42,9 @@ class SAGPool(torch.nn.Module):
 
 
 class ConvPoolBlock(torch.nn.Module):
+    """A combination of GCN layer and SAGPool layer,
+    followed by a concatenated (mean||sum) readout operation.
+    """
     def __init__(self, in_dim:int, out_dim:int, pool_ratio=0.8):
         super(ConvPoolBlock, self).__init__()
         self.conv = GraphConv(in_dim, out_dim)

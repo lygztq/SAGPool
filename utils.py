@@ -47,6 +47,13 @@ def get_stats(array, conf_interval=False, name=None, stdout=False, logout=False)
 
 
 def get_batch_id(num_nodes:torch.Tensor):
+    """Convert the num_nodes array obtained from batch graph to batch_id array
+    for each node.
+
+    Args:
+        num_nodes (torch.Tensor): The tensor whose element is the number of nodes
+            in each graph in the batch graph.
+    """
     batch_size = num_nodes.size(0)
     batch_ids = []
     for i in range(batch_size):
@@ -56,6 +63,20 @@ def get_batch_id(num_nodes:torch.Tensor):
 
 
 def topk(x:torch.Tensor, ratio:float, batch_id:torch.Tensor, num_nodes:torch.Tensor):
+    """The top-k pooling method. Given a graph batch, this method will pool out some
+    nodes from input node feature tensor for each graph according to the given ratio.
+
+    Args:
+        x (torch.Tensor): The input node feature batch-tensor to be pooled.
+        ratio (float): the pool ratio. For example if :obj:`ratio=0.5` then half of the input
+            tensor will be pooled out.
+        batch_id (torch.Tensor): The batch_id of each element in the input tensor.
+        num_nodes (torch.Tensor): The number of nodes of each graph in batch.
+    
+    Returns:
+        perm (torch.Tensor): The index in batch to be kept.
+        k (torch.Tensor): The remaining number of nodes for each graph.
+    """
     batch_size, max_num_nodes = num_nodes.size(0), num_nodes.max().item()
     
     cum_num_nodes = torch.cat(

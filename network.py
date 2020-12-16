@@ -8,6 +8,19 @@ from layer import ConvPoolBlock, SAGPool
 
 
 class SAGNetworkHierarchical(torch.nn.Module):
+    """The Self-Attention Graph Pooling Network with hierarchical readout in paper
+    `Self Attention Graph Pooling <https://arxiv.org/pdf/1904.08082.pdf>`
+
+    Args:
+        in_dim (int): The input node feature dimension.
+        hid_dim (int): The hidden dimension for node feature.
+        out_dim (int): The output dimension.
+        num_convs (int, optional): The number of graph convolution layers.
+            (default: 3)
+        pool_ratio (float, optional): The pool ratio which determines the amount of nodes
+            remain after pooling. (default: :obj:`0.5`)
+        dropout (float, optional): The dropout ratio for each layer. (default: 0)
+    """
     def __init__(self, in_dim:int, hid_dim:int, out_dim:int, num_convs=3,
                  pool_ratio:float=0.5, dropout:float=0.0):
         super(SAGNetworkHierarchical, self).__init__()
@@ -46,6 +59,19 @@ class SAGNetworkHierarchical(torch.nn.Module):
 
 
 class SAGNetworkGlobal(torch.nn.Module):
+    """The Self-Attention Graph Pooling Network with global readout in paper
+    `Self Attention Graph Pooling <https://arxiv.org/pdf/1904.08082.pdf>`
+
+    Args:
+        in_dim (int): The input node feature dimension.
+        hid_dim (int): The hidden dimension for node feature.
+        out_dim (int): The output dimension.
+        num_convs (int, optional): The number of graph convolution layers.
+            (default: 3)
+        pool_ratio (float, optional): The pool ratio which determines the amount of nodes
+            remain after pooling. (default: :obj:`0.5`)
+        dropout (float, optional): The dropout ratio for each layer. (default: 0)
+    """
     def __init__(self, in_dim:int, hid_dim:int, out_dim:int, num_convs=3,
                  pool_ratio:float=0.5, dropout:float=0.0):
         super(SAGNetworkGlobal, self).__init__()

@@ -1,13 +1,14 @@
-from numpy.core.fromnumeric import sort
+import argparse
+import json
+import logging
+import os
+
+import dgl
 import torch
 import torch.nn
-import argparse
-import os
-import json
-import dgl
 import torch.nn.functional as F
-from torch.utils.data import random_split
 from dgl.data import LegacyTUDataset
+from torch.utils.data import random_split
 
 from dataloader import GraphDataLoader
 from network import get_sag_network
@@ -51,11 +52,18 @@ def parse_args():
     parser.add_argument("--output_path", type=str, default="./output")
     
     args = parser.parse_args()
+
+    # device
     args.device = "cpu" if args.device == -1 else "cuda:{}".format(args.device)
+    if not torch.cuda.is_available():
+        logging.warning("CUDA is not available, use CPU for training.")
+        args.device = "cpu"
+
+    # print every
     if args.print_every == -1:
         args.print_every = args.epochs + 1
-    if not torch.cuda.is_available():
-        args.device = "cpu"
+
+    # paths
     if not os.path.exists(args.dataset_path):
         os.makedirs(args.dataset_path)
     if not os.path.exists(args.output_path):
@@ -105,8 +113,12 @@ def test(model:torch.nn.Module, loader, device):
 def main(args):
     # Step 1: Prepare graph data and retrieve train/validation/test index ============================= #
     dataset = LegacyTUDataset(args.dataset, raw_dir=args.dataset_path)
+
+    # add self loop. We add self loop for each graph here since the function "add_self_loop" does not
+    # support batch graph.
     for i in range(len(dataset)):
         dataset.graph_lists[i] = dgl.add_self_loop(dataset.graph_lists[i])
+
     num_training = int(len(dataset) * 0.8)
     num_val = int(len(dataset) * 0.1)
     num_test = len(dataset) - num_val - num_training
@@ -119,7 +131,7 @@ def main(args):
     device = torch.device(args.device)
     
     # Step 2: Create model =================================================================== #
-    num_feature, num_classes, max_num_nodes = dataset.statistics()
+    num_feature, num_classes, _ = dataset.statistics()
     model_op = get_sag_network(args.architecture)
     model = model_op(in_dim=num_feature, hid_dim=args.hid_dim, out_dim=num_classes,
                      num_convs=args.conv_layers, pool_ratio=args.pool_ratio, dropout=args.dropout).to(device)
@@ -154,9 +166,6 @@ def main(args):
     print("Best Epoch {}, final test acc {:.4f}".format(best_epoch, final_test_acc))
     return final_test_acc
 
-def fake_main():
-    return 5 + torch.randn((1,)).item()
-
 
 if __name__ == "__main__":
     args = parse_args()
@@ -166,7 +175,7 @@ if __name__ == "__main__":
         res.append(main(args))
 
     mean, err_bd = get_stats(res, conf_interval=True)
-    print(mean, err_bd)
+    print("mean acc: {:.4f}, error bound: {:.4f}".format(mean, err_bd))
 
     out_dict = {"hyper-parameters": vars(args),
                 "result": "{:.4f}(+-{:.4f})".format(mean, err_bd)}
