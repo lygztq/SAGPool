@@ -112,9 +112,9 @@ def main(args):
     num_test = len(dataset) - num_val - num_training
     train_set, val_set, test_set = random_split(dataset, [num_training, num_val, num_test])
 
-    train_loader = GraphDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=0)
-    val_loader = GraphDataLoader(val_set, batch_size=args.batch_size)
-    test_loader = GraphDataLoader(test_set, batch_size=args.batch_size)
+    train_loader = GraphDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=6)
+    val_loader = GraphDataLoader(val_set, batch_size=args.batch_size, num_workers=2)
+    test_loader = GraphDataLoader(test_set, batch_size=args.batch_size, num_workers=2)
 
     device = torch.device(args.device)
     
