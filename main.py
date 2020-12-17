@@ -12,7 +12,7 @@ from torch.utils.data import random_split
 
 from dataloader import GraphDataLoader
 from network import get_sag_network
-from utils import get_stats
+from utils import get_stats, Profiler
 
 
 def parse_args():
@@ -183,9 +183,11 @@ if __name__ == "__main__":
     mean, err_bd = get_stats(res, conf_interval=True)
     print("mean acc: {:.4f}, error bound: {:.4f}".format(mean, err_bd))
 
+    prof = Profiler()
     out_dict = {"hyper-parameters": vars(args),
                 "result": "{:.4f}(+-{:.4f})".format(mean, err_bd),
-                "train_time": "{:.4f}".format(sum(train_times) / len(train_times))}
+                "train_time": "{:.4f}".format(sum(train_times) / len(train_times)),
+                "profiling": prof.dump()}
 
     with open(args.output_path, "w") as f:
         json.dump(out_dict, f, sort_keys=True, indent=4)

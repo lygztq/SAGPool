@@ -40,7 +40,8 @@ class SAGPool(torch.nn.Module):
         
         return graph, feature, perm
 
-
+from utils import Profiler
+from time import time
 class ConvPoolBlock(torch.nn.Module):
     """A combination of GCN layer and SAGPool layer,
     followed by a concatenated (mean||sum) readout operation.
@@ -53,7 +54,20 @@ class ConvPoolBlock(torch.nn.Module):
         self.maxpool = MaxPooling()   
     
     def forward(self, graph, feature):
+        prof = Profiler()
+
+        s1_time = time()
         out = F.relu(self.conv(graph, feature))
+        prof["conv"].add_time(time() - s1_time)
+
+        s2_time = time()
         graph, out, _ = self.pool(graph, out)
+        prof["pool"].add_time(time() - s2_time)
+
+        s3_time = time()
         g_out = torch.cat([self.avgpool(graph, out), self.maxpool(graph, out)], dim=-1)
+        prof["readout"].add_time(time() - s3_time)
+
+        prof["conv_pool_readout"].add_time(time() - s1_time)
+        
         return graph, out, g_out
