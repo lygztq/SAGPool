@@ -90,7 +90,7 @@ def train(model:torch.nn.Module, optimizer, trainloader, device):
 
         total_loss += loss.item()
     
-    return total_loss / len(trainloader.dataset)
+    return total_loss / len(trainloader)
 
 
 @torch.no_grad()
